@@ -4,6 +4,7 @@ import logging
 import os
 import shutil
 import time
+from datetime import datetime
 from typing import List, Optional, Tuple, Union
 
 import pyrogram
@@ -96,6 +97,23 @@ def _move_to_download_path(temp_download_path: str, download_path: str):
     directory, _ = os.path.split(download_path)
     os.makedirs(directory, exist_ok=True)
     shutil.move(temp_download_path, download_path)
+
+
+def _set_file_mtime(file_path: str, media_datetime: Optional[datetime]):
+    """Set file modification time to the media datetime.
+
+    Parameters
+    ----------
+    file_path: str
+        Path to the downloaded file
+
+    media_datetime: Optional[datetime]
+        The datetime from the Telegram message
+
+    """
+    if media_datetime and os.path.exists(file_path):
+        mtime = media_datetime.timestamp()
+        os.utime(file_path, (mtime, mtime))
 
 
 def _check_timeout(retry: int, _: int):
@@ -203,16 +221,19 @@ async def _get_media_meta(
         # pylint: disable = C0209
         file_format = media_obj.mime_type.split("/")[-1]  # type: ignore
         file_save_path = app.get_file_save_path(_type, dirname, datetime_dir_name)
-        file_name = "{} - {}_{}.{}".format(
-            message.id,
+        base_name = "{}_{}".format(
             _type,
             media_obj.date.isoformat(),  # type: ignore
-            file_format,
         )
-        file_name = validate_title(file_name)
-        temp_file_name = os.path.join(app.temp_save_path, dirname, file_name)
+        gen_file_name = (
+            app.get_file_name(message.id, base_name, None, message.date)
+            + "."
+            + file_format
+        )
+        gen_file_name = validate_title(gen_file_name)
+        temp_file_name = os.path.join(app.temp_save_path, dirname, gen_file_name)
 
-        file_name = os.path.join(file_save_path, file_name)
+        file_name = os.path.join(file_save_path, gen_file_name)
     else:
         file_name = getattr(media_obj, "file_name", None)
         caption = getattr(message, "caption", None)
@@ -244,7 +265,8 @@ async def _get_media_meta(
             file_name = f"{message.photo.file_unique_id}"
 
         gen_file_name = (
-            app.get_file_name(message.id, file_name, caption) + file_name_suffix
+            app.get_file_name(message.id, file_name, caption, message.date)
+            + file_name_suffix
         )
 
         file_save_path = app.get_file_save_path(_type, dirname, datetime_dir_name)
@@ -281,7 +303,7 @@ async def save_msg_to_file(
     file_name = os.path.join(
         app.temp_save_path,
         file_save_path,
-        f"{app.get_file_name(message.id, None, None)}.txt",
+        f"{app.get_file_name(message.id, None, None, message.date)}.txt",
     )
 
     os.makedirs(os.path.dirname(file_name), exist_ok=True)
@@ -291,6 +313,8 @@ async def save_msg_to_file(
 
     with open(file_name, "w", encoding="utf-8") as f:
         f.write(message.text or "")
+
+    _set_file_mtime(file_name, message.date)
 
     return DownloadStatus.SuccessDownload, file_name
 
@@ -455,6 +479,7 @@ async def download_media(
                 _check_download_finish(media_size, temp_download_path, ui_file_name)
                 await asyncio.sleep(0.5)
                 _move_to_download_path(temp_download_path, file_name)
+                _set_file_mtime(file_name, message.date)
                 # TODO: if not exist file size or media
                 return DownloadStatus.SuccessDownload, file_name
         except pyrogram.errors.exceptions.bad_request_400.BadRequest:

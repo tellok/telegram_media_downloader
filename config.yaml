@@ -21,4 +21,18 @@ media_types:
 - voice
 - video_note
 # in linux please use /
-# save_path: E:\github\telegram_media_downloader
+save_path: /tmp/tdl_test_downloads
+language: EN
+hide_file_name: false
+proxy:
+  scheme: socks5
+  hostname: 127.0.0.1
+  port: 7890
+# file_name_prefix supports: message_id, file_name, caption, media_datetime
+# media_datetime adds "YYYY-MM-DD HHmmss" format timestamp from the Telegram upload time
+file_name_prefix:
+- media_datetime
+- message_id
+- file_name
+- caption
+file_name_prefix_split: ' - '

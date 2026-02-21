@@ -723,7 +723,11 @@ class Application:
         return res
 
     def get_file_name(
-        self, message_id: int, file_name: Optional[str], caption: Optional[str]
+        self,
+        message_id: int,
+        file_name: Optional[str],
+        caption: Optional[str],
+        media_datetime: Optional[datetime] = None,
     ) -> str:
         """Get file save path prefix.
 
@@ -737,6 +741,9 @@ class Application:
 
         caption: Optional[str]
             Message caption
+
+        media_datetime: Optional[datetime]
+            Media datetime from Telegram message
 
         Returns
         -------
@@ -758,6 +765,10 @@ class Application:
                 if res != "":
                     res += self.file_name_prefix_split
                 res += f"{caption}"
+            elif prefix == "media_datetime" and media_datetime:
+                if res != "":
+                    res += self.file_name_prefix_split
+                res += media_datetime.strftime("%Y-%m-%d %H%M%S")
         if res == "":
             res = f"{message_id}"
 

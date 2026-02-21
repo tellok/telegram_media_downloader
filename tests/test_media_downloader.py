@@ -199,6 +199,10 @@ def mock_check_download_finish(media_size: int, download_path: str, ui_file_name
     pass
 
 
+def mock_set_file_mtime(file_path: str, media_datetime):
+    pass
+
+
 async def new_fetch_message(client: pyrogram.Client, message: pyrogram.types.Message):
     return message
 
@@ -355,7 +359,6 @@ def check_for_updates(_: dict = None):
 @mock.patch("media_downloader.fetch_message", new=new_fetch_message)
 @mock.patch("media_downloader.get_chat_history_v2", new=get_chat_history)
 @mock.patch("media_downloader.RETRY_TIME_OUT", new=0)
-@mock.patch("media_downloader.check_for_updates", new=check_for_updates)
 class MediaDownloaderTestCase(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -636,6 +639,75 @@ class MediaDownloaderTestCase(unittest.TestCase):
             result,
         )
 
+    def test_get_media_meta_with_media_datetime(self):
+        """Test that media_datetime prefix is added to filenames."""
+        rest_app(MOCK_CONF)
+        app.save_path = MOCK_DIR
+        app.file_name_prefix = ["message_id", "media_datetime", "file_name"]
+
+        # Test Video with media_datetime prefix
+        message = MockMessage(
+            id=10,
+            media=True,
+            date=datetime(2022, 3, 15, 9, 30, 0),
+            chat_title="test_dt",
+            video=MockVideo(
+                file_name="test_video.mp4",
+                mime_type="video/mp4",
+            ),
+        )
+        result = self.loop.run_until_complete(
+            async_get_media_meta(-123, message, message.video, "video")
+        )
+        self.assertEqual(
+            (
+                platform_generic_path(
+                    "/root/project/test_dt/2022_03/10 - 2022-03-15 093000 - test_video.mp4"
+                ),
+                platform_generic_path(
+                    os.path.join(
+                        app.temp_save_path,
+                        "test_dt/10 - 2022-03-15 093000 - test_video.mp4",
+                    )
+                ),
+                "mp4",
+            ),
+            result,
+        )
+
+        # Test Voice with media_datetime prefix
+        message = MockMessage(
+            id=11,
+            media=True,
+            date=datetime(2022, 3, 15, 9, 30, 0),
+            chat_title="test_dt",
+            voice=MockVoice(
+                mime_type="audio/ogg",
+                date=datetime(2022, 3, 15, 9, 30, 0),
+            ),
+        )
+        result = self.loop.run_until_complete(
+            async_get_media_meta(-123, message, message.voice, "voice")
+        )
+        self.assertEqual(
+            (
+                platform_generic_path(
+                    "/root/project/test_dt/2022_03/11 - 2022-03-15 093000 - voice_2022-03-15T09_30_00.ogg"
+                ),
+                platform_generic_path(
+                    os.path.join(
+                        app.temp_save_path,
+                        "test_dt/11 - 2022-03-15 093000 - voice_2022-03-15T09_30_00.ogg",
+                    )
+                ),
+                "ogg",
+            ),
+            result,
+        )
+
+        # Restore original prefix
+        app.file_name_prefix = ["message_id", "caption", "file_name"]
+
     @mock.patch("media_downloader.app.save_path", new=MOCK_DIR)
     @mock.patch("media_downloader.asyncio.sleep", return_value=None)
     @mock.patch("media_downloader.logger")
@@ -645,6 +717,9 @@ class MediaDownloaderTestCase(unittest.TestCase):
     )
     @mock.patch(
         "media_downloader._check_download_finish", new=mock_check_download_finish
+    )
+    @mock.patch(
+        "media_downloader._set_file_mtime", new=mock_set_file_mtime
     )
     def test_download_media(self, mock_logger, patch_sleep):
         reset_download_cache()

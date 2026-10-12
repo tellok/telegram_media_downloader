@@ -2,18 +2,22 @@ name: Code Quality
 
 on:
   pull_request:
-    branches: [ master ]
+    branches: [master]
     paths-ignore:
-      - 'README.md'
+    - 'README.md'
   push:
-    branches: [ master ]
+    branches: [master]
     paths-ignore:
-      - 'README.md'
+    - 'README.md'
 
 jobs:
   pre-commit:
     name: Linting
-    runs-on: ubuntu-latest
+    runs-on:
+    - self-hosted
+    - tower
+    - ubuntu-latest
+    - tower-run-${{ github.run_id }}-${{ github.run_attempt }}
     steps:
     - uses: actions/checkout@v3
     - uses: actions/setup-python@v4

@@ -3,13 +3,17 @@ name: Docker Publish
 on:
   push:
     branches:
-      - master
+    - master
     tags:
-      - 'v*'
+    - 'v*'
 
 jobs:
   build-and-push:
-    runs-on: ubuntu-latest
+    runs-on:
+    - self-hosted
+    - tower
+    - ubuntu-latest
+    - tower-run-${{ github.run_id }}-${{ github.run_attempt }}
     outputs:
       compile_image_exists: ${{ steps.check-image.outputs.exists }}
       requirements_modified: ${{ steps.check-requirements.outputs.modified }}

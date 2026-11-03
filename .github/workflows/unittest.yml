@@ -13,11 +13,7 @@ on:
 jobs:
   build:
 
-    runs-on:
-    - self-hosted
-    - tower
-    - ${{ matrix.os }}
-    - tower-run-${{ github.run_id }}-${{ github.run_attempt }}
+    runs-on: ["self-hosted", "${{ matrix.os }}"]
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest]

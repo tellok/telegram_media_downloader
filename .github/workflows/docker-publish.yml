@@ -9,7 +9,7 @@ on:
 
 jobs:
   build-and-push:
-    runs-on: ["self-hosted", "ubuntu-latest"]
+    runs-on: "ubuntu-latest"
     outputs:
       compile_image_exists: ${{ steps.check-image.outputs.exists }}
       requirements_modified: ${{ steps.check-requirements.outputs.modified }}

@@ -8,14 +8,14 @@ on:
 jobs:
   build-tdl-binaries:
     name: Build tdl binaries for ${{ matrix.os }}
-    runs-on: ["self-hosted", "${{ matrix.os }}"]
+    runs-on: "${{ matrix.os }}"
     strategy:
       matrix:
         os: [windows-latest] #[macos-latest, ubuntu-20.04, windows-latest]
         include:
         - os: macos-latest
           TARGET: macos
-        - os: ubuntu-20.04
+        - os: ubuntu-22.04
           TARGET: linux-amd64
         - os: windows-latest
           TARGET: win64
@@ -75,7 +75,7 @@ jobs:
     name: Create GitHub release
     if: startsWith(github.ref, 'refs/tags/')
     needs: build-tdl-binaries
-    runs-on: ["self-hosted", "ubuntu-latest"]
+    runs-on: "ubuntu-latest"
     outputs:
       upload_url: ${{ steps.create_release.outputs.upload_url }}
       VERSION: ${{ steps.get_version.outputs.VERSION }}
@@ -99,7 +99,7 @@ jobs:
     name: Upload release assets
     if: startsWith(github.ref, 'refs/tags/')
     needs: create_release
-    runs-on: ["self-hosted", "ubuntu-latest"]
+    runs-on: "ubuntu-latest"
     strategy:
       matrix:
         TARGET: [win64] #[macos, linux-amd64, win64]
